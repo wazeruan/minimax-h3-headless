@@ -57,12 +57,24 @@ def _copy_runtime(tmp_path: Path) -> tuple[Path, Path, Path]:
     _executable(
         root / "scripts" / "generate_sglang.sh",
         "#!/usr/bin/env bash\n"
-        "printf '%s' \"$1\" >\"$FAKE_SLURM_STATE/prompt\"\n"
-        "printf '%s' \"$2\" >\"$FAKE_SLURM_STATE/output\"\n"
-        "printf '%s' \"$H3_SGLANG_URL\" >\"$FAKE_SLURM_STATE/url\"\n"
+        "prompt= output= url=\n"
+        "generation_args=(\"$@\")\n"
+        "while (( $# )); do\n"
+        "  case \"$1\" in\n"
+        "    --prompt) prompt=$2; shift 2 ;;\n"
+        "    --output) output=$2; shift 2 ;;\n"
+        "    --url) url=$2; shift 2 ;;\n"
+        "    -*) shift 2 ;;\n"
+        "    *) if [[ -z \"$prompt\" ]]; then prompt=$1; elif [[ -z \"$output\" ]]; then output=$1; fi; shift ;;\n"
+        "  esac\n"
+        "done\n"
+        "printf '<%s>\\n' \"${generation_args[@]}\" >\"$FAKE_SLURM_STATE/generation-args\"\n"
+        "printf '%s' \"$prompt\" >\"$FAKE_SLURM_STATE/prompt\"\n"
+        "printf '%s' \"$output\" >\"$FAKE_SLURM_STATE/output\"\n"
+        "printf '%s' \"$url\" >\"$FAKE_SLURM_STATE/url\"\n"
         "[[ \"${FAKE_GENERATION_FAIL:-0}\" != 1 ]] || exit 23\n"
-        "mkdir -p -- \"$(dirname -- \"$2\")\"\n"
-        "printf 'fake mp4' >\"$2\"\n",
+        "mkdir -p -- \"$(dirname -- \"$output\")\"\n"
+        "printf 'fake mp4' >\"$output\"\n",
     )
     model = root / "models" / "MiniMax-H3"
     (model / "FL2VA").mkdir(parents=True)
@@ -141,6 +153,78 @@ def test_one_shot_slurm_job_stops_server_when_generation_fails(tmp_path: Path) -
     assert result.returncode == 23
     assert (state / "stopped").is_file()
     assert not (root / "outputs" / "h3-9877.mp4").exists()
+
+
+def test_one_shot_slurm_job_forwards_cli_generation_options(tmp_path: Path) -> None:
+    root, batch, state = _copy_runtime(tmp_path)
+    output = root / "outputs" / "vertical.mp4"
+    env = os.environ.copy()
+    env.update(
+        FAKE_SLURM_STATE=str(state),
+        H3_REPO_DIR=str(root),
+        H3_MODEL_PATH=str(root / "models" / "MiniMax-H3"),
+        H3_SGLANG_BIN=str(root / ".venv" / "bin" / "sglang"),
+        H3_STARTUP_TIMEOUT_SECONDS="5",
+        SLURM_JOB_ID="9878",
+        PATH=f"{tmp_path / 'fake bin'}{os.pathsep}{env['PATH']}",
+    )
+    result = subprocess.run(
+        [
+            str(batch),
+            "--prompt",
+            "A vertical city walk",
+            "--duration",
+            "10",
+            "--aspect-ratio",
+            "9:16",
+            "--seed",
+            "123",
+            "--output",
+            str(output),
+        ],
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    assert output.read_bytes() == b"fake mp4"
+    assert (state / "prompt").read_text() == "A vertical city walk"
+    assert (state / "output").read_text() == str(output)
+    args = (state / "generation-args").read_text().splitlines()
+    assert "<--duration>" in args
+    assert "<10>" in args
+    assert "<--aspect-ratio>" in args
+    assert "<9:16>" in args
+    assert "<--seed>" in args
+    assert "<123>" in args
+
+
+def test_one_shot_slurm_job_accepts_output_after_named_prompt(tmp_path: Path) -> None:
+    root, batch, state = _copy_runtime(tmp_path)
+    output = root / "outputs" / "named-prompt.mp4"
+    env = os.environ.copy()
+    env.update(
+        FAKE_SLURM_STATE=str(state),
+        H3_REPO_DIR=str(root),
+        H3_MODEL_PATH=str(root / "models" / "MiniMax-H3"),
+        H3_SGLANG_BIN=str(root / ".venv" / "bin" / "sglang"),
+        H3_STARTUP_TIMEOUT_SECONDS="5",
+        SLURM_JOB_ID="9879",
+        PATH=f"{tmp_path / 'fake bin'}{os.pathsep}{env['PATH']}",
+    )
+    result = subprocess.run(
+        [str(batch), "--prompt", "A distant lighthouse", str(output)],
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    assert output.read_bytes() == b"fake mp4"
+    assert (state / "output").read_text() == str(output)
 
 
 def test_submission_helper_builds_portable_sbatch_command(tmp_path: Path) -> None:

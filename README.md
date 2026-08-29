@@ -51,7 +51,7 @@ Run these on the H100 server after cloning the repository:
 ./h3.sh setup
 ./h3.sh download
 ./h3.sh start
-./h3.sh generate "A red panda makes tea in a quiet cabin during gentle rain, cinematic close shot, synchronized kettle and rain sounds."
+./h3.sh generate --prompt "A red panda makes tea in a quiet cabin during gentle rain, cinematic close shot, synchronized kettle and rain sounds."
 ```
 
 Before `download`, open the [MiniMax H3 model page](https://huggingface.co/MiniMaxAI/MiniMax-H3), accept its license, and use a Hugging Face account with access. The command opens the Hugging Face login flow if needed.
@@ -66,8 +66,8 @@ inside the allocation, creates the video, and stops SGLang before the job exits:
 
 ```bash
 ./scripts/submit_slurm_generation.sh \
-  "A red panda makes tea while rain taps on the cabin window." \
-  outputs/red-panda.mp4
+  --prompt "A red panda makes tea while rain taps on the cabin window." \
+  --output outputs/red-panda.mp4
 ```
 
 It reads `H3_SLURM_ACCOUNT` from `.env` when present and otherwise uses your
@@ -76,7 +76,7 @@ site's default account. The default GPU request is
 
 ```bash
 H3_SLURM_GPU_OPTION=--gres=gpu:h100:1 \
-  ./scripts/submit_slurm_generation.sh "A moonlit mountain lake."
+  ./scripts/submit_slurm_generation.sh --prompt "A moonlit mountain lake."
 ```
 
 See [the Slurm guide](docs/SLURM.md) for direct `sbatch`, partition, duration,
@@ -103,9 +103,16 @@ ssh -N -L 30010:127.0.0.1:30010 USER@GPU_SERVER
 The defaults create a 5-second, 16:9, 768p clip with 50 inference steps.
 
 ```bash
-H3_DURATION_SECONDS=10 H3_ASPECT_RATIO=9:16 H3_SEED=123 \
-  ./h3.sh generate "A slow vertical tracking shot through a neon night market."
+./h3.sh generate \
+  --prompt "A slow vertical tracking shot through a neon night market." \
+  --duration 10 --aspect-ratio 9:16 --seed 123 --steps 50 \
+  --output outputs/night-market.mp4
 ```
+
+Run `./h3.sh generate --help` to see every generation flag, including video and
+audio flow shift, model identifier, direct server URL, polling interval, and
+timeout. The generation command does not read those settings from environment
+variables.
 
 The default `speed` mode is tuned to use the 80-GB H100 more aggressively. If
 startup or generation runs out of memory, switch to the one-command `memory`

@@ -19,8 +19,8 @@ Then submit:
 
 ```bash
 ./scripts/submit_slurm_generation.sh \
-  "A cinematic tracking shot through a lantern-lit forest, with synchronized rain and footsteps." \
-  outputs/forest.mp4
+  --prompt "A cinematic tracking shot through a lantern-lit forest, with synchronized rain and footsteps." \
+  --output outputs/forest.mp4
 ```
 
 The helper loads `H3_SLURM_ACCOUNT` from `.env`, requests one H100 by default,
@@ -29,18 +29,22 @@ and prints the Slurm job ID. If `OUTPUT.mp4` is omitted, the result is written t
 Slurm stdout and stderr are `slurm-h3-generate-JOB_ID.out` and
 `slurm-h3-generate-JOB_ID.err`.
 
-Generation settings are ordinary exported variables:
+Set generation settings directly on the command line:
 
 ```bash
-H3_DURATION_SECONDS=10 H3_ASPECT_RATIO=9:16 H3_SEED=123 \
-  ./scripts/submit_slurm_generation.sh "A vertical shot through a night market."
+./scripts/submit_slurm_generation.sh \
+  --prompt "A vertical shot through a night market." \
+  --duration 10 --aspect-ratio 9:16 --seed 123 --steps 50
 ```
+
+`./scripts/submit_slurm_generation.sh --help` shows every generation flag. The
+helper passes them unchanged to the allocated job.
 
 For a different site GPU syntax, pass the exact option through the helper:
 
 ```bash
 H3_SLURM_GPU_OPTION=--gres=gpu:h100:1 \
-  ./scripts/submit_slurm_generation.sh "A quiet mountain lake at dawn."
+  ./scripts/submit_slurm_generation.sh --prompt "A quiet mountain lake at dawn."
 ```
 
 You can also call the batch file directly. It intentionally omits account,

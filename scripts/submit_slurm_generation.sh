@@ -5,10 +5,11 @@ repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
 usage() {
   cat <<'EOF'
-Usage: scripts/submit_slurm_generation.sh [PROMPT] [OUTPUT.mp4]
+Usage: scripts/submit_slurm_generation.sh [GENERATION OPTIONS] [PROMPT] [OUTPUT.mp4]
 
 Submits a one-H100 Slurm job that starts MiniMax H3, generates one MP4, and
-stops the server. If PROMPT is omitted, it is read interactively.
+stops the server. Use the same generation options as `./h3.sh generate`, such
+as `--duration 10 --aspect-ratio 9:16 --seed 123`.
 
 Optional submission settings:
   H3_SLURM_ACCOUNT       Slurm account (loaded from .env when present)
@@ -21,14 +22,7 @@ EOF
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
 esac
-(( $# <= 2 )) || { usage >&2; exit 2; }
-
-prompt=${1:-}
-if [[ -z "${prompt}" ]]; then
-  read -r -p "Video prompt: " prompt
-fi
-[[ -n "${prompt//[[:space:]]/}" ]] || { echo "Prompt cannot be empty." >&2; exit 2; }
-output=${2:-}
+(( $# >= 1 )) || { usage >&2; exit 2; }
 
 if [[ -f "${repo_dir}/.env" ]]; then
   # Load site defaults such as H3_SLURM_ACCOUNT. The compute job loads the same
@@ -53,7 +47,5 @@ sbatch_args=(--export=ALL)
 [[ -z "${H3_SLURM_TIME:-}" ]] || sbatch_args+=(--time="${H3_SLURM_TIME}")
 
 export H3_REPO_DIR="${repo_dir}"
-job_args=("${prompt}")
-[[ -z "${output}" ]] || job_args+=("${output}")
 
-exec sbatch "${sbatch_args[@]}" "${batch_script}" "${job_args[@]}"
+exec sbatch "${sbatch_args[@]}" "${batch_script}" "$@"

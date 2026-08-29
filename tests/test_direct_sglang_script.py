@@ -100,13 +100,12 @@ def _run(
         env.pop(key, None)
     env.update(
         FAKE_CURL_STATE_DIR=str(state),
-        H3_POLL_INTERVAL_SECONDS="0",
         PATH=f"{tmp_path / 'fake bin'}{os.pathsep}{env['PATH']}",
     )
     if env_overrides:
         env.update(env_overrides)
     result = subprocess.run(
-        [str(script), *args],
+        [str(script), "--poll-interval", "0", *args],
         input=stdin,
         env=env,
         text=True,
@@ -129,21 +128,41 @@ def test_direct_sglang_generation_uses_the_official_t2va_shape(tmp_path: Path) -
     output = tmp_path / "nested output" / "movie.mp4"
     result, _, state = _run(
         tmp_path,
+        "--url",
+        "https://sglang.example/base",
+        "--duration",
+        "10.5",
+        "--aspect-ratio",
+        "9:16",
+        "--seed",
+        "123",
+        "--steps",
+        "9",
+        "--flow-shift",
+        "11.5",
+        "--audio-flow-shift",
+        "2.5",
+        "--model",
+        "local-minimax-h3",
+        "--timeout",
+        "5",
+        "--prompt",
         "A moonlit fox",
+        "--output",
         str(output),
         env_overrides={
-            "H3_SGLANG_URL": "https://sglang.example/base",
-            "H3_DURATION_SECONDS": "10.5",
-            "H3_ASPECT_RATIO": "9:16",
-            "H3_SEED": "123",
-            "H3_NUM_INFERENCE_STEPS": "9",
+            "H3_SGLANG_URL": "https://ignored.example",
+            "H3_DURATION_SECONDS": "4",
+            "H3_ASPECT_RATIO": "1:1",
+            "H3_SEED": "999",
+            "H3_NUM_INFERENCE_STEPS": "1",
         },
     )
     assert result.returncode == 0, result.stderr
     assert output.read_bytes() == b"fake mp4 payload"
     request = _request(state)
     assert request == {
-        "model": "MiniMaxAI/MiniMax-H3",
+        "model": "local-minimax-h3",
         "prompt": "A moonlit fox",
         "seconds": 10.5,
         "task": "t2va",
@@ -151,8 +170,8 @@ def test_direct_sglang_generation_uses_the_official_t2va_shape(tmp_path: Path) -
         "target": {"short_edge": 768, "aspect_ratio": "9:16", "duration_seconds": 10.5},
         "num_outputs_per_prompt": 1,
         "num_inference_steps": 9,
-        "flow_shift": 12.0,
-        "audio_flow_shift": 3.0,
+        "flow_shift": 11.5,
+        "audio_flow_shift": 2.5,
         "seed": 123,
     }
     calls = _calls(state)
@@ -189,18 +208,19 @@ def test_direct_sglang_generation_reports_terminal_failure_and_preserves_output(
 def test_direct_sglang_generation_rejects_invalid_settings_before_network_request(tmp_path: Path) -> None:
     result, _, state = _run(
         tmp_path,
+        "--duration",
+        "3",
         "prompt",
-        env_overrides={"H3_DURATION_SECONDS": "3"},
     )
     assert result.returncode == 1
-    assert "H3_DURATION_SECONDS must be between 4 and 15" in result.stderr
+    assert "--duration must be between 4 and 15" in result.stderr
     assert not (state / "calls.jsonl").exists()
 
 
 def test_h3_wrapper_exposes_a_non_gateway_headless_interface() -> None:
     result = subprocess.run([str(H3), "--help"], text=True, capture_output=True, check=False)
     assert result.returncode == 0
-    assert "generate [PROMPT] [FILE]" in result.stdout
+    assert "generate [OPTIONS] [PROMPT] [FILE]" in result.stdout
     assert "ComfyUI" not in result.stdout
 
 

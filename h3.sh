@@ -24,7 +24,8 @@ Commands:
   setup                    Create the project-local SGLang environment.
   download [fl2va|ref2va]  Download one MiniMax H3 checkpoint partition.
   start [fl2va|ref2va]     Start one local SGLang server in the background.
-  generate [PROMPT] [FILE] Generate a 768p text-to-video-and-audio MP4.
+  generate [OPTIONS] [PROMPT] [FILE]
+                           Generate a 768p text-to-video-and-audio MP4.
   status                   Show the local server and health state.
   logs                     Follow the SGLang log.
   stop                     Stop the server started by this launcher.

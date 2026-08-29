@@ -13,21 +13,19 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: sbatch [SLURM OPTIONS] deploy/slurm/h3-generate.sbatch PROMPT [OUTPUT.mp4]
+Usage: sbatch [SLURM OPTIONS] deploy/slurm/h3-generate.sbatch [GENERATION OPTIONS] [PROMPT] [OUTPUT.mp4]
 
 Starts FL2VA on one allocated H100, generates one video, and stops the server.
-Set H3_REPO_DIR when submitting from outside the repository. Generation options
-such as H3_DURATION_SECONDS, H3_ASPECT_RATIO, and H3_SEED are passed through.
+Set H3_REPO_DIR when submitting from outside the repository. Use CLI options
+such as `--duration 10 --aspect-ratio 9:16 --seed 123`.
 EOF
 }
 
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
 esac
-(( $# >= 1 && $# <= 2 )) || { usage >&2; exit 2; }
-
-prompt=$1
-[[ -n "${prompt//[[:space:]]/}" ]] || { echo "Prompt cannot be empty." >&2; exit 2; }
+(( $# >= 1 )) || { usage >&2; exit 2; }
+generation_args=("$@")
 
 repo_hint=${H3_REPO_DIR:-${SLURM_SUBMIT_DIR:-}}
 [[ -n "${repo_hint}" && -d "${repo_hint}" ]] || {
@@ -83,7 +81,41 @@ ${h100_found} || {
 }
 
 job_tag=${SLURM_JOB_ID:-$$}
-output=${2:-"${repo_dir}/outputs/h3-${job_tag}.mp4"}
+output=${repo_dir}/outputs/h3-${job_tag}.mp4
+value_option=
+prompt_from_option=false
+output_from_option=false
+literal_arguments=false
+positional_arguments=()
+for argument in "${generation_args[@]}"; do
+  if [[ -n "${value_option}" ]]; then
+    case "${value_option}" in
+      output) output=${argument}; output_from_option=true ;;
+      prompt) prompt_from_option=true ;;
+    esac
+    value_option=
+    continue
+  fi
+  if ${literal_arguments}; then
+    positional_arguments+=("${argument}")
+    continue
+  fi
+  case "${argument}" in
+    --output) value_option=output ;;
+    --prompt) value_option=prompt ;;
+    --duration|--aspect-ratio|--seed|--steps|--flow-shift|--audio-flow-shift|--model|--url|--poll-interval|--timeout) value_option=skip ;;
+    --) literal_arguments=true ;;
+    -*) ;;
+    *) positional_arguments+=("${argument}") ;;
+  esac
+done
+if ! ${output_from_option}; then
+  if ${prompt_from_option} && (( ${#positional_arguments[@]} >= 1 )); then
+    output=${positional_arguments[0]}
+  elif ! ${prompt_from_option} && (( ${#positional_arguments[@]} >= 2 )); then
+    output=${positional_arguments[1]}
+  fi
+fi
 server_log_dir=${H3_SLURM_LOG_DIR:-"${repo_dir}/logs"}
 server_log="${server_log_dir}/sglang-${job_tag}.log"
 mkdir -p -- "${server_log_dir}" "$(dirname -- "${output}")"
@@ -164,5 +196,6 @@ while ! curl --fail --silent "${H3_SGLANG_URL}/health" >/dev/null 2>&1; do
 done
 
 echo "SGLang is ready; starting generation."
-"${repo_dir}/scripts/generate_sglang.sh" "${prompt}" "${output}"
+"${repo_dir}/scripts/generate_sglang.sh" "${generation_args[@]}" \
+  --url "${H3_SGLANG_URL}" --output "${output}"
 echo "Slurm generation complete: ${output}"
