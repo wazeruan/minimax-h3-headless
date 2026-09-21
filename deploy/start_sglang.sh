@@ -17,6 +17,23 @@ resident_layer_budget() {
   printf '%s\n' "${value}"
 }
 
+single_h100_default_layers() {
+  local memory=
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    memory=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | awk 'NR == 1 {print $1}')
+  fi
+  if [[ "${memory}" =~ ^[0-9]+$ ]]; then
+    if ((memory < 24000)); then
+      echo "An H100 with at least 24 GB GPU memory is required; detected ${memory} MiB." >&2
+      exit 1
+    elif ((memory < 48000)); then
+      printf '%s\n' 8
+      return
+    fi
+  fi
+  printf '%s\n' 32
+}
+
 case "${variant}" in
   fl2va) port=${H3_INFERENCE_PORT:-30010} ;;
   ref2va) port=${H3_INFERENCE_PORT:-30011} ;;
@@ -31,12 +48,13 @@ fi
 case "${profile}" in
   h100x1)
     h100_mode=${H3_H100_MODE:-speed}
+    auto_resident_layers=$(single_h100_default_layers)
     case "${h100_mode}" in
       speed)
-        resident_layers=$(resident_layer_budget 32)
+        resident_layers=$(resident_layer_budget "${auto_resident_layers}")
         ;;
       memory)
-        resident_layers=$(resident_layer_budget 20)
+        resident_layers=$(resident_layer_budget "$([[ "${auto_resident_layers}" -lt 20 ]] && printf '%s' "${auto_resident_layers}" || printf '%s' 20)")
         ;;
       *)
         echo "H3_H100_MODE must be speed or memory." >&2
@@ -52,7 +70,7 @@ case "${profile}" in
     quantization=${H3_QUANTIZATION:-kitchen_int8}
     case "${quantization}" in
       off|none|'') ;;
-      *) topology+=(--quantization "${quantization}") ;;
+      *) topology+=(--quantization "${quantization}" --attention-backend fa) ;;
     esac
     topology+=(--enable-torch-compile false)
     ;;

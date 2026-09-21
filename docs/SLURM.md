@@ -92,7 +92,8 @@ sbatch \
 Use your site's equivalent of `--gres=gpu:h100:1` if it does not support
 `--gpus-per-node`. Keep both model partitions on one node only if the node has
 enough suitable GPUs. With one H100, run FL2VA and Ref2VA as separate jobs.
-The single-H100 profile uses layerwise CPU offload, so keep the 256 GB
+The single-H100 profile uses `kitchen_int8` plus layerwise CPU offload; a 40 GB
+card defaults to eight resident DiT layers. Keep the 256 GB
 host-memory request and expect higher latency than the official four-H100
 resident profile.
 

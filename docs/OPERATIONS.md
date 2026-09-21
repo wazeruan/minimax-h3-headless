@@ -29,7 +29,7 @@ should call when using the legacy gateway workflow.
 | Profile | Officially documented role | Notes |
 | --- | --- | --- |
 | `auto` | Detect visible NVIDIA GPU model/count | Falls back to `h100x1` when detection is unavailable |
-| `h100x1` | Capacity fallback | Online `kitchen_int8` DiT quantization plus layerwise CPU offload; use at least 256 GB host RAM |
+| `h100x1` | Low-memory single-card path | Online `kitchen_int8` DiT quantization plus layerwise CPU offload; 40 GB defaults to 8 resident layers; use at least 256 GB host RAM |
 | `h100x4` | SGLang speed default on 4×H100 80 GB | TP2 + Ulysses2 |
 | `h100x4_memory` | Lower resident memory on 4×H100 | TP4; modestly slower |
 | `h100x4_fsdp` | Capacity fallback on 4×H100 | About 57 GB peak/GPU in the published benchmark |

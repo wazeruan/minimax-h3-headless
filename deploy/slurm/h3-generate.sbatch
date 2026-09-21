@@ -70,13 +70,13 @@ h100_found=false
 while IFS=, read -r gpu_name gpu_memory; do
   gpu_name=${gpu_name# }
   gpu_memory=${gpu_memory//[[:space:]]/}
-  if [[ "${gpu_name}" =~ H100 && "${gpu_memory}" =~ ^[0-9]+$ && ${gpu_memory} -ge 70000 ]]; then
+  if [[ "${gpu_name}" =~ H100 && "${gpu_memory}" =~ ^[0-9]+$ && ${gpu_memory} -ge 24000 ]]; then
     h100_found=true
     break
   fi
 done < <(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits 2>/dev/null)
 ${h100_found} || {
-  echo "The Slurm job does not have a full H100 80 GB GPU." >&2
+  echo "The Slurm job does not have an H100 with at least 24 GB GPU memory." >&2
   exit 1
 }
 

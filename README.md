@@ -15,10 +15,12 @@ partitions, so a four-H100 deployment serves one of them at a time.
 
 ## Important limitation
 
-This repository is configured for **one full H100 80 GB** using lossless
-BF16/FP32 CPU/layerwise offload plus online INT8 DiT quantization. Quantization
-reduces memory use but changes linear-layer numerics; set `H3_QUANTIZATION=off`
-when exact BF16/FP32 behavior is more important than capacity.
+This repository is configured for **one H100** using BF16/FP32 CPU/layerwise
+offload plus online INT8 DiT quantization. H100 40 GB uses an automatic
+8-layer resident budget; 80 GB uses more resident layers for better speed.
+Quantization reduces memory use but changes linear-layer numerics; set
+`H3_QUANTIZATION=off` when exact BF16/FP32 behavior is more important than
+capacity.
 
 The locally available model is H3-Base at a 768-pixel short edge. The hosted
 H3-Context-IR prompt-preprocessing stage and 2K regeneration are not included
@@ -26,7 +28,7 @@ in the open release.
 
 ## Server requirements
 
-- Linux with one NVIDIA H100 80 GB GPU visible to `nvidia-smi`
+- Linux with one NVIDIA H100 GPU and at least 24 GB visible to `nvidia-smi`
 - At least 256 GiB host RAM for CPU offload
 - At least 180 GiB free disk for one checkpoint partition (more for both)
 - A CUDA driver compatible with the SGLang version locked in this repository
@@ -115,9 +117,9 @@ audio flow shift, model identifier, direct server URL, polling interval, and
 timeout. The generation command does not read those settings from environment
 variables.
 
-The default `speed` mode is tuned to use the 80-GB H100 more aggressively. If
-startup or generation runs out of memory, switch to the one-command `memory`
-fallback; it uses 20 resident DiT blocks:
+The default `speed` mode uses 32 resident DiT blocks on an 80-GB H100 and
+automatically uses 8 on a 40-GB H100. If startup or generation runs out of
+memory, switch to the one-command `memory` fallback:
 
 ```bash
 H3_H100_MODE=memory ./h3.sh restart
@@ -129,9 +131,10 @@ If the request still runs out of memory, lower the resident block count:
 H3_H100_MODE=memory H3_DIT_RESIDENT_LAYERS=4 ./h3.sh restart
 ```
 
-`H3_DIT_RESIDENT_LAYERS` must be a non-negative integer. The speed-mode default
-is `32`; the memory-mode default is `20`. More resident blocks reduce PCIe
-weight transfers, but leave less VRAM for activations.
+`H3_DIT_RESIDENT_LAYERS` must be a non-negative integer. On a 40-GB H100, use
+`0` for the upstream low-memory setting or `4` for a cautious speed tradeoff.
+More resident blocks reduce PCIe weight transfers, but leave less VRAM for
+activations.
 
 To put model weights on a larger mounted volume, set the same environment
 variable for setup, download, and server start:
@@ -170,14 +173,16 @@ sglang serve \
   --performance-mode memory \
   --layerwise-offload-components dit,text_encoder,vae \
   --dit-offload-prefetch-size 1 \
-  --dit-layerwise-resident-layers 32 \
+  --dit-layerwise-resident-layers 8 \
+  --quantization kitchen_int8 \
+  --attention-backend fa \
   --enable-torch-compile false \
   --host 127.0.0.1 \
   --port 30010
 ```
 
 SGLang still needs `performance-mode memory` because the complete pipeline is
-larger than 80 GB. Within that policy, retaining more DiT blocks avoids repeated
+larger than the card. Within that policy, retaining more DiT blocks avoids repeated
 CPU-to-GPU transfers. The default Hopper attention backend is
 left unchanged, and `torch.compile` stays disabled because its current H3 path
 changes numerical output. The direct client sends the documented `/v1/videos`
