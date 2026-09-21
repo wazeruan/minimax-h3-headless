@@ -127,6 +127,7 @@ updates = {
     "H3_ENV_DIR": env_dir,
     "H3_MODEL_DIR": model_dir,
     "H3_MODEL_PATH": model_dir,
+    "H3_MODEL_REVISION": "42ed227ee7df40d41602854ae760620d6eb651fe",
     "H3_GATEWAY_BIN": env_dir + "/bin/h3-gateway",
     "H3_SGLANG_BIN": env_dir + "/bin/sglang",
     "H3_HF_BIN": env_dir + "/bin/hf",

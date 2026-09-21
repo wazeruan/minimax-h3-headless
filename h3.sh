@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Single-H100, SSH-first MiniMax H3 launcher.  The public workflow intentionally
-# serves SGLang directly on loopback instead of running ComfyUI or a second API
-# gateway.  H3's full checkpoint does not fit in one 80 GB card, so the server
-# uses SGLang's lossless CPU/layerwise offload mode.
+# SSH-first MiniMax H3 launcher.  The fastest verified H100 topology is four
+# 80 GB cards. A single H100 uses lossless CPU/layerwise offload as a capacity
+# fallback and must be started inside an existing Slurm allocation on clusters.
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 venv_bin=${H3_VENV_BIN:-"${repo_dir}/.venv/bin"}
@@ -124,8 +123,12 @@ select_h100() {
   done <<<"${rows}"
 
   [[ -n "${selected}" ]] || fail "A full H100 80 GB GPU is required; no suitable GPU was found."
-  if [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]]; then
-    export CUDA_VISIBLE_DEVICES=${selected}
+  # Slurm owns CUDA_VISIBLE_DEVICES. This check intentionally does not alter it.
+}
+
+require_allocation_if_slurm() {
+  if command -v sbatch >/dev/null 2>&1 && [[ -z "${SLURM_JOB_ID:-}" ]]; then
+    fail "A Slurm cluster was detected. Start H3 through its Slurm launcher; do not run it on the login node."
   fi
 }
 
@@ -195,7 +198,9 @@ download() {
 
   local component
   component=$(component_dir "${variant}")
+  local model_revision=${H3_MODEL_REVISION:-42ed227ee7df40d41602854ae760620d6eb651fe}
   "${hf_bin}" download MiniMaxAI/MiniMax-H3 \
+    --revision "${model_revision}" \
     --include "model_index.json" "${component}/*" \
     --local-dir "${model_dir}"
   echo "Downloaded ${variant} to ${model_dir}"
@@ -226,6 +231,7 @@ start() {
   [[ -x "${venv_bin}/sglang" ]] || fail "Environment not found. Run ./h3.sh setup first."
   require_command curl
   require_command python3
+  require_allocation_if_slurm
   select_h100
   warn_if_low_host_memory
   ensure_model "${variant}"

@@ -7,14 +7,14 @@ usage() {
   cat <<'EOF'
 Usage: scripts/submit_slurm_generation.sh [GENERATION OPTIONS] [PROMPT] [OUTPUT.mp4]
 
-Submits a one-H100 Slurm job that starts MiniMax H3, generates one MP4, and
+Submits a four-H100 Slurm job that starts MiniMax H3, generates one MP4, and
 stops the server. Use the same generation options as `./h3.sh generate`, such
 as `--duration 10 --aspect-ratio 9:16 --seed 123`.
 
 Optional submission settings:
   H3_SLURM_ACCOUNT       Slurm account (loaded from .env when present)
   H3_SLURM_PARTITION     Slurm partition
-  H3_SLURM_GPU_OPTION    Exact GPU option (default --gpus-per-node=h100:1)
+  H3_SLURM_GPU_OPTION    Exact GPU option (default --gpus-per-node=h100:4)
   H3_SLURM_TIME          Override the job time limit
 EOF
 }
@@ -39,7 +39,7 @@ command -v sbatch >/dev/null 2>&1 || {
 batch_script="${repo_dir}/deploy/slurm/h3-generate.sbatch"
 [[ -f "${batch_script}" ]] || { echo "Missing ${batch_script}" >&2; exit 1; }
 
-gpu_option=${H3_SLURM_GPU_OPTION:---gpus-per-node=h100:1}
+gpu_option=${H3_SLURM_GPU_OPTION:---gpus-per-node=h100:4}
 sbatch_args=(--export=ALL)
 [[ -z "${gpu_option}" ]] || sbatch_args+=("${gpu_option}")
 [[ -z "${H3_SLURM_ACCOUNT:-}" ]] || sbatch_args+=(--account="${H3_SLURM_ACCOUNT}")

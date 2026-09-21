@@ -17,7 +17,9 @@ dependencies = [
 inference = [
   "cuda-tile; sys_platform == 'linux'",
   "huggingface-hub>=0.34,<2",
-  "sglang[diffusion]>=0.5.17,<0.5.18; sys_platform == 'linux'",
+  # H3 support is actively maintained in SGLang Diffusion. Keep the lockfile
+  # reproducible, but do not freeze this deployment to the day-zero release.
+  "sglang[diffusion]>=0.5.17; sys_platform == 'linux'",
 ]
 dev = [
   "pytest>=8.4,<9",

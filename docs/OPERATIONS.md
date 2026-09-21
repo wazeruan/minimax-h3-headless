@@ -1,12 +1,12 @@
 # Operations and troubleshooting
 
-## Recommended single-H100 process layout
+## Recommended four-H100 process layout
 
 For the SSH-first deployment described in the current README, use `./h3.sh`.
 It starts one SGLang process directly on `127.0.0.1:30010`; there is no
-ComfyUI and no FastAPI gateway in that path. The single H100 process uses
-lossless CPU/layerwise offload, keeps 32 DiT blocks resident by default, and
-`./h3.sh generate` talks to SGLang's native `/v1/videos` API.
+ComfyUI and no FastAPI gateway in that path. The four-H100 profile uses the
+verified TP2 + Ulysses2 topology, and `./h3.sh generate` talks to SGLang's
+native `/v1/videos` API.
 
 ```bash
 ./h3.sh status
@@ -29,8 +29,8 @@ should call when using the legacy gateway workflow.
 | Profile | Officially documented role | Notes |
 | --- | --- | --- |
 | `auto` | Detect visible NVIDIA GPU model/count | Falls back to `h100x1` when detection is unavailable |
-| `h100x1` | Speed-first SGLang layerwise-offload path | 32 resident DiT blocks; project default, not an upstream measured topology; use at least 256 GB host RAM |
-| `h100x4` | SGLang speed default on 4×H100 80 GB | TP2 + Ulysses2; about 66 GB peak/GPU in the published benchmark |
+| `h100x1` | Capacity fallback | Lossless layerwise CPU offload; not a measured speed topology; use at least 256 GB host RAM |
+| `h100x4` | SGLang speed default on 4×H100 80 GB | TP2 + Ulysses2 |
 | `h100x4_memory` | Lower resident memory on 4×H100 | TP4; modestly slower |
 | `h100x4_fsdp` | Capacity fallback on 4×H100 | About 57 GB peak/GPU in the published benchmark |
 | `h200x4` | SGLang resident path | Pure Ulysses4 |

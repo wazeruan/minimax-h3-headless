@@ -837,8 +837,8 @@ def test_cuda_tile_is_locked_to_nvidia_cp311_x86_64_wheel() -> None:
 def test_sglang_lock_supports_the_minimax_h3_cli() -> None:
     project = tomllib.loads((REPO / "pyproject.toml").read_text())
     inference = project["project"]["optional-dependencies"]["inference"]
-    assert "sglang[diffusion]>=0.5.17,<0.5.18; sys_platform == 'linux'" in inference
+    assert "sglang[diffusion]>=0.5.17; sys_platform == 'linux'" in inference
 
     lock = tomllib.loads((REPO / "uv.lock").read_text())
     sglang = next(package for package in lock["package"] if package["name"] == "sglang")
-    assert sglang["version"] == "0.5.17"
+    assert sglang["version"] == "0.5.20"

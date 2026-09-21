@@ -15,7 +15,7 @@ usage() {
   cat <<'EOF'
 Usage: sbatch [SLURM OPTIONS] deploy/slurm/h3-generate.sbatch [GENERATION OPTIONS] [PROMPT] [OUTPUT.mp4]
 
-Starts FL2VA on one allocated H100, generates one video, and stops the server.
+Starts FL2VA on the allocated H100 node, generates one video, and stops the server.
 Set H3_REPO_DIR when submitting from outside the repository. Use CLI options
 such as `--duration 10 --aspect-ratio 9:16 --seed 123`.
 EOF
@@ -159,7 +159,7 @@ trap 'exit 143' TERM
 
 export H3_SGLANG_BIN="${sglang_bin}"
 export H3_MODEL_PATH="${model_path}"
-export H3_PROFILE=${H3_PROFILE:-h100x1}
+export H3_PROFILE=${H3_PROFILE:-auto}
 export H3_INFERENCE_HOST=127.0.0.1
 export H3_INFERENCE_PORT="${port}"
 export H3_SGLANG_URL="http://127.0.0.1:${port}"
