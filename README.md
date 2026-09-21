@@ -11,16 +11,14 @@ The public release splits its weights into two partitions:
 
 For fastest prompt-only work, use `FL2VA`. For the strongest subject, scene,
 or style consistency, use `Ref2VA` with reference media. They are separate
-partitions, so a four-H100 deployment serves one of them at a time.
+partitions, served one at a time on the single-card deployment.
 
 ## Important limitation
 
 This repository is configured for **one H100** using BF16/FP32 CPU/layerwise
 offload plus online INT8 DiT quantization. H100 40 GB uses an automatic
-8-layer resident budget; 80 GB uses more resident layers for better speed.
-Quantization reduces memory use but changes linear-layer numerics; set
-`H3_QUANTIZATION=off` when exact BF16/FP32 behavior is more important than
-capacity.
+8-layer resident budget. Quantization reduces memory use but changes
+linear-layer numerics; this checkout intentionally keeps the quantized profile.
 
 The locally available model is H3-Base at a 768-pixel short edge. The hosted
 H3-Context-IR prompt-preprocessing stage and 2K regeneration are not included
@@ -117,9 +115,9 @@ audio flow shift, model identifier, direct server URL, polling interval, and
 timeout. The generation command does not read those settings from environment
 variables.
 
-The default `speed` mode uses 32 resident DiT blocks on an 80-GB H100 and
-automatically uses 8 on a 40-GB H100. If startup or generation runs out of
-memory, switch to the one-command `memory` fallback:
+The default `speed` mode uses 8 resident DiT blocks on the 40-GB H100. If
+startup or generation runs out of memory, switch to the one-command `memory`
+fallback:
 
 ```bash
 H3_H100_MODE=memory ./h3.sh restart
@@ -197,8 +195,8 @@ payload, polls its status, then downloads the completed MP4 atomically.
 - **`Could not detect ROCm GPU architecture`:** update this repository and
   restart. The launcher explicitly selects CUDA for SGLang's JIT kernels on an
   NVIDIA node; make sure the CUDA module supplies `nvcc`.
-- **GPU OOM:** keep `H3_QUANTIZATION=kitchen_int8`, restart with
-  `H3_H100_MODE=memory`, and if needed add `H3_DIT_RESIDENT_LAYERS=4`. The
+- **GPU OOM:** restart with `H3_H100_MODE=memory`, and if needed add
+  `H3_DIT_RESIDENT_LAYERS=4`. The
   quantized path changes linear-layer numerics, so validate output quality.
 - **Slow first request:** expected. The model is loading and CPU-offloaded
   blocks traverse PCIe during denoising.

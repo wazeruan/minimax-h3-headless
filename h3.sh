@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SSH-first MiniMax H3 launcher.  The fastest verified H100 topology is four
-# 80 GB cards. A single H100 (including 40 GB) uses quantized layerwise-offload
-# scheduling and must be started inside a Slurm allocation on
+# SSH-first MiniMax H3 launcher for the H100 40 GB quantized profile. It must
+# be started inside a Slurm allocation on
 # clusters.
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -117,13 +116,13 @@ select_h100() {
   while IFS=, read -r index name memory; do
     name=${name# }
     memory=${memory//[[:space:]]/}
-    if [[ "${name}" =~ H100 && "${memory}" =~ ^[0-9]+$ && ${memory} -ge 24000 ]]; then
+    if [[ "${name}" =~ H100 && "${memory}" =~ ^[0-9]+$ && ${memory} -ge 24000 && ${memory} -lt 48000 ]]; then
       selected=${index//[[:space:]]/}
       break
     fi
   done <<<"${rows}"
 
-  [[ -n "${selected}" ]] || fail "An H100 with at least 24 GB GPU memory is required; no suitable GPU was found."
+  [[ -n "${selected}" ]] || fail "An H100 40 GB GPU is required; 24–47 GB is accepted and larger profiles are disabled."
   # Slurm owns CUDA_VISIBLE_DEVICES. This check intentionally does not alter it.
 }
 

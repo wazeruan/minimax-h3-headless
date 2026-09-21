@@ -78,12 +78,12 @@ def _run_detect(
     [
         (["NVIDIA H100 80GB HBM3"], "h100x1"),
         (["NVIDIA H100 80GB HBM3"] * 2, "h100x1"),
-        (["NVIDIA H100 80GB HBM3"] * 4, "h100x4"),
-        (["NVIDIA H200"] * 4, "h200x4"),
-        (["NVIDIA B300"] * 4, "genericx1"),
-        (["NVIDIA GeForce RTX 5090"] * 2, "rtx5090x2"),
-        (["NVIDIA GeForce RTX 4090"] * 2, "genericx1"),
-        (["NVIDIA L40S"], "genericx1"),
+        (["NVIDIA H100 40GB HBM3"] * 4, "h100x1"),
+        (["NVIDIA H200"] * 4, "h100x1"),
+        (["NVIDIA B300"] * 4, "h100x1"),
+        (["NVIDIA GeForce RTX 5090"] * 2, "h100x1"),
+        (["NVIDIA GeForce RTX 4090"] * 2, "h100x1"),
+        (["NVIDIA L40S"], "h100x1"),
     ],
 )
 def test_detect_sglang_profiles(tmp_path: Path, names: list[str], expected: str) -> None:
@@ -147,10 +147,10 @@ def test_detect_rejects_invalid_backend_before_hardware_probe(tmp_path: Path) ->
     ("visible", "expected"),
     [
         ("0", "h100x1"),
-        ("1, 3", "rtx5090x2"),
-        ("0,2,3,4", "h100x4"),
+        ("1, 3", "h100x1"),
+        ("0,2,3,4", "h100x1"),
         ("GPU-a,GPU-b", "h100x1"),
-        ("MIG-GPU-a/1/0,MIG-GPU-b/2/0,MIG-GPU-c/3/0,MIG-GPU-d/4/0", "h100x4"),
+        ("MIG-GPU-a/1/0,MIG-GPU-b/2/0,MIG-GPU-c/3/0,MIG-GPU-d/4/0", "h100x1"),
     ],
 )
 def test_detect_respects_numeric_and_uuid_visibility(
@@ -224,12 +224,12 @@ def test_start_sglang_defaults_to_auto_h100x1_without_gpu(tmp_path: Path) -> Non
     assert args[:5] == ["serve", "--model-path", "MiniMaxAI/MiniMax-H3", "--model-variant", "fl2va"]
     assert _contains_sequence(args, ["--num-gpus", "1", "--tp-size", "1", "--ulysses-degree", "1"])
     assert _contains_sequence(args, ["--performance-mode", "memory"])
-    assert _contains_sequence(args, ["--dit-layerwise-resident-layers", "32"])
+    assert _contains_sequence(args, ["--dit-layerwise-resident-layers", "8"])
     assert "--component-residency" not in args
     assert _contains_sequence(args, ["--enable-torch-compile", "false"])
     assert _contains_sequence(args, ["--host", "127.0.0.1", "--port", "30010"])
     assert "Auto-selected SGLang profile: h100x1" in result.stderr
-    assert "Single-H100 mode: speed (32 resident DiT layers)." in result.stderr
+    assert "Single-H100 mode: speed (8 resident DiT layers)." in result.stderr
 
 
 def test_start_sglang_single_gpu_allows_an_explicit_resident_layer_budget(tmp_path: Path) -> None:
@@ -302,9 +302,9 @@ def test_start_sglang_single_h100_memory_mode_offloads_vae(tmp_path: Path) -> No
     )
     assert result.returncode == 0, result.stderr
     args = _arg_lines(result.stdout)
-    assert _contains_sequence(args, ["--dit-layerwise-resident-layers", "20"])
+    assert _contains_sequence(args, ["--dit-layerwise-resident-layers", "8"])
     assert "--component-residency" not in args
-    assert "Single-H100 mode: memory (20 resident DiT layers)." in result.stderr
+    assert "Single-H100 mode: memory (8 resident DiT layers)." in result.stderr
 
 
 def test_start_sglang_rejects_invalid_single_h100_mode(tmp_path: Path) -> None:
@@ -336,28 +336,6 @@ def test_start_sglang_rejects_invalid_single_gpu_resident_layer_budget(tmp_path:
     )
     assert result.returncode == 2
     assert "H3_DIT_RESIDENT_LAYERS" in result.stderr
-
-
-def test_start_sglang_auto_expands_four_h100_profile(tmp_path: Path) -> None:
-    fake_bin = _fake_smi(tmp_path, "NVIDIA H100 80GB HBM3\n" * 4)
-    _executable(fake_bin / "nvcc", "#!/usr/bin/env bash\nexit 0\n")
-    fake_sglang = _executable(
-        tmp_path / "sglang",
-        "#!/usr/bin/env bash\nprintf '<%s>\\n' \"$@\"\n",
-    )
-    env = os.environ.copy()
-    env.update(H3_SGLANG_BIN=str(fake_sglang), PATH=f"{fake_bin}{os.pathsep}{env['PATH']}")
-    env.pop("H3_PROFILE", None)
-    env.pop("CUDA_VISIBLE_DEVICES", None)
-    result = subprocess.run(
-        [str(START_SGLANG), "ref2va"], env=env, text=True, capture_output=True, check=False
-    )
-    assert result.returncode == 0, result.stderr
-    args = _arg_lines(result.stdout)
-    assert _contains_sequence(args, ["--model-variant", "ref2va"])
-    assert _contains_sequence(args, ["--num-gpus", "4", "--tp-size", "2", "--ulysses-degree", "2"])
-    assert _contains_sequence(args, ["--host", "127.0.0.1", "--port", "30011"])
-    assert "Auto-selected SGLang profile: h100x4" in result.stderr
 
 
 def test_start_vllm_defaults_to_auto_single_offload_without_gpu(tmp_path: Path) -> None:

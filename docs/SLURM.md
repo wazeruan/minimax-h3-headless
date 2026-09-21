@@ -94,8 +94,7 @@ Use your site's equivalent of `--gres=gpu:h100:1` if it does not support
 enough suitable GPUs. With one H100, run FL2VA and Ref2VA as separate jobs.
 The single-H100 profile uses `kitchen_int8` plus layerwise CPU offload; a 40 GB
 card defaults to eight resident DiT layers. Keep the 256 GB
-host-memory request and expect higher latency than the official four-H100
-resident profile.
+host-memory request and expect CPU-offload latency.
 
 Find the compute node and inference port:
 

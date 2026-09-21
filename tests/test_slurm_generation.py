@@ -35,7 +35,7 @@ def _copy_runtime(tmp_path: Path) -> tuple[Path, Path, Path]:
     _executable(
         fake_bin / "nvidia-smi",
         "#!/usr/bin/env bash\n"
-        "printf '%s\\n' 'NVIDIA H100 80GB HBM3, 81559'\n" * 4,
+        "printf '%s\\n' 'NVIDIA H100 40GB HBM3, 40960'\n" * 4,
     )
     _executable(
         fake_bin / "curl",

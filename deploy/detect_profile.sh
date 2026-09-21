@@ -62,14 +62,8 @@ if [[ "${backend}" == "vllm_omni" ]]; then
   exit 0
 fi
 
-if ((count >= 4)) && grep -Eqi 'H200' <<<"${joined}"; then
-  echo h200x4
-elif ((count >= 4)) && grep -Eqi 'H100' <<<"${joined}"; then
-  echo h100x4
-elif ((count >= 2)) && grep -Eqi 'RTX[[:space:]]*5090' <<<"${joined}"; then
-  echo rtx5090x2
-elif grep -Eqi 'H100' <<<"${joined}"; then
+if grep -Eqi 'H100' <<<"${joined}"; then
   echo h100x1
 else
-  echo genericx1
+  echo "${fallback}"
 fi

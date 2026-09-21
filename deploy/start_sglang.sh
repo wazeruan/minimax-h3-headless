@@ -23,15 +23,16 @@ single_h100_default_layers() {
     memory=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | awk 'NR == 1 {print $1}')
   fi
   if [[ "${memory}" =~ ^[0-9]+$ ]]; then
-    if ((memory < 24000)); then
-      echo "An H100 with at least 24 GB GPU memory is required; detected ${memory} MiB." >&2
+    if ((memory < 24000 || memory >= 48000)); then
+      echo "This checkout supports only an H100 40 GB GPU (24–47 GB accepted); detected ${memory} MiB." >&2
       exit 1
-    elif ((memory < 48000)); then
-      printf '%s\n' 8
-      return
     fi
+    printf '%s\n' 8
+    return
   fi
-  printf '%s\n' 32
+  # Keep the low-memory budget when nvidia-smi is unavailable; the scheduler
+  # preflight still rejects unsupported hardware before a real launch.
+  printf '%s\n' 8
 }
 
 case "${variant}" in
@@ -67,45 +68,12 @@ case "${profile}" in
       --layerwise-offload-components "dit,text_encoder,vae"
       --dit-offload-prefetch-size 1 --dit-layerwise-resident-layers "${resident_layers}"
     )
-    quantization=${H3_QUANTIZATION:-kitchen_int8}
-    case "${quantization}" in
-      off|none|'') ;;
-      *) topology+=(--quantization "${quantization}" --attention-backend fa) ;;
-    esac
+    topology+=(--quantization kitchen_int8 --attention-backend fa)
     topology+=(--enable-torch-compile false)
-    ;;
-  genericx1)
-    resident_layers=$(resident_layer_budget 20)
-    topology=(
-      --num-gpus 1 --tp-size 1 --ulysses-degree 1 --performance-mode memory
-      --layerwise-offload-components "dit,text_encoder,vae"
-      --dit-offload-prefetch-size 1 --dit-layerwise-resident-layers "${resident_layers}"
-      --enable-torch-compile false
-    )
-    ;;
-  h100x4)
-    topology=(--num-gpus 4 --tp-size 2 --ulysses-degree 2 --performance-mode speed)
-    ;;
-  h100x4_memory)
-    topology=(--num-gpus 4 --tp-size 4 --ulysses-degree 1 --performance-mode speed)
-    ;;
-  h100x4_fsdp)
-    topology=(--num-gpus 4 --ulysses-degree 4 --performance-mode speed --use-fsdp-inference true)
-    ;;
-  h200x4)
-    topology=(--num-gpus 4 --ulysses-degree 4 --performance-mode speed)
-    ;;
-  rtx5090x2)
-    topology=(
-      --num-gpus 2 --tp-size 2 --ulysses-degree 1 --performance-mode memory
-      --layerwise-offload-components "dit,text_encoder,vae"
-      --dit-offload-prefetch-size 1 --dit-layerwise-resident-layers 20
-      --enable-torch-compile false
-    )
     ;;
   *)
     echo "Unknown H3_PROFILE=${profile}" >&2
-    echo "Choose auto, h100x1, h100x4, h100x4_memory, h100x4_fsdp, h200x4, rtx5090x2, or genericx1." >&2
+    echo "This checkout supports only the h100x1 40 GB profile." >&2
     exit 2
     ;;
 esac

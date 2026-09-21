@@ -476,7 +476,7 @@ def test_server_honors_model_gpu_and_profile_environment(tmp_path: Path) -> None
         tmp_path,
         state,
         H3_MODEL_PATH=str(custom),
-        H3_PROFILE="h100x4",
+        H3_PROFILE="h100x1",
         CUDA_VISIBLE_DEVICES="GPU-one,GPU-two,GPU-three,GPU-four",
     )
     try:
@@ -488,7 +488,7 @@ def test_server_honors_model_gpu_and_profile_environment(tmp_path: Path) -> None
             time.sleep(0.01)
         launched = (state / "sglang-env").read_text()
         assert f"model={custom}" in launched
-        assert "profile=h100x4" in launched
+        assert "profile=h100x1" in launched
         assert "cuda=GPU-one,GPU-two,GPU-three,GPU-four" in launched
     finally:
         subprocess.run([str(script), "stop"], env=env, capture_output=True, check=False)

@@ -28,18 +28,10 @@ should call when using the legacy gateway workflow.
 
 | Profile | Officially documented role | Notes |
 | --- | --- | --- |
-| `auto` | Detect visible NVIDIA GPU model/count | Falls back to `h100x1` when detection is unavailable |
-| `h100x1` | Low-memory single-card path | Online `kitchen_int8` DiT quantization plus layerwise CPU offload; 40 GB defaults to 8 resident layers; use at least 256 GB host RAM |
-| `h100x4` | SGLang speed default on 4×H100 80 GB | TP2 + Ulysses2 |
-| `h100x4_memory` | Lower resident memory on 4×H100 | TP4; modestly slower |
-| `h100x4_fsdp` | Capacity fallback on 4×H100 | About 57 GB peak/GPU in the published benchmark |
-| `h200x4` | SGLang resident path | Pure Ulysses4 |
-| `rtx5090x2` | Lossless SGLang offload path | Requires roughly 384 GB host RAM |
+| `h100x1` | Only supported profile | Online `kitchen_int8` DiT quantization plus layerwise CPU offload; 8 resident layers; use at least 256 GB host RAM |
 
 The vLLM-Omni Docker launcher includes its documented B300, two-card DLO, and
-single-GPU offload profiles. Its `auto` mode selects `single_offload` for one
-H100. The four-H100 profiles remain available when a larger allocation is later
-approved.
+single-GPU offload profiles, but they are outside this 40-GB H100 checkout.
 
 ## Useful checks
 
