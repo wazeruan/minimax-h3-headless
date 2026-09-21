@@ -199,9 +199,10 @@ download() {
   local component
   component=$(component_dir "${variant}")
   local model_revision=${H3_MODEL_REVISION:-42ed227ee7df40d41602854ae760620d6eb651fe}
+  local include=("model_index.json" "${component}/*")
   "${hf_bin}" download MiniMaxAI/MiniMax-H3 \
     --revision "${model_revision}" \
-    --include "model_index.json" "${component}/*" \
+    --include "${include[@]}" \
     --local-dir "${model_dir}"
   echo "Downloaded ${variant} to ${model_dir}"
 }
