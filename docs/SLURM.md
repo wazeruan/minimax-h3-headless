@@ -23,7 +23,7 @@ Then submit:
   --output outputs/forest.mp4
 ```
 
-The helper loads `H3_SLURM_ACCOUNT` from `.env`, requests four H100s by default,
+The helper loads `H3_SLURM_ACCOUNT` from `.env`, requests one H100 by default,
 and prints the Slurm job ID. If `OUTPUT.mp4` is omitted, the result is written to
 `outputs/h3-JOB_ID.mp4`. SGLang's per-job log is `logs/sglang-JOB_ID.log`, while
 Slurm stdout and stderr are `slurm-h3-generate-JOB_ID.out` and
@@ -58,7 +58,7 @@ export H3_MODEL_PATH=/path/to/models/MiniMax-H3
 sbatch \
   --account=YOUR_ACCOUNT \
   --partition=YOUR_GPU_PARTITION \
-  --gpus-per-node=h100:4 \
+  --gpus-per-node=h100:1 \
   --export=ALL \
   deploy/slurm/h3-generate.sbatch \
   "A red panda makes tea in a quiet cabin." \
@@ -66,7 +66,7 @@ sbatch \
 ```
 
 The one-shot file binds SGLang only to loopback, chooses a per-job port, uses
-the verified four-H100 speed profile when the allocation provides four cards, and always stops its child server on normal
+the single-H100 CPU-offload profile, and always stops its child server on normal
 exit, failure, cancellation, or time-limit warning. The job requests 32 CPU
 cores, 256 GB host RAM, and four hours by default; command-line `sbatch` options
 override these headers.
@@ -79,22 +79,22 @@ server-only job instead:
 ```bash
 export H3_REPO_DIR="$PWD"
 export H3_MODEL_PATH=/path/to/models/MiniMax-H3
-export H3_PROFILE=auto
+export H3_PROFILE=h100x1
 
 sbatch \
   --account=YOUR_ACCOUNT \
   --partition=YOUR_GPU_PARTITION \
-  --gpus-per-node=h100:4 \
+  --gpus-per-node=h100:1 \
   --export=ALL \
   deploy/slurm/h3-sglang.sbatch fl2va
 ```
 
 Use your site's equivalent of `--gres=gpu:h100:1` if it does not support
 `--gpus-per-node`. Keep both model partitions on one node only if the node has
-enough suitable GPUs. With four H100s, run FL2VA and Ref2VA as separate jobs.
-A one-H100 allocation falls back to layerwise CPU offload, so keep the 256 GB
-host-memory request and expect substantially higher latency than the official
-four-H100 resident profile.
+enough suitable GPUs. With one H100, run FL2VA and Ref2VA as separate jobs.
+The single-H100 profile uses layerwise CPU offload, so keep the 256 GB
+host-memory request and expect higher latency than the official four-H100
+resident profile.
 
 Find the compute node and inference port:
 

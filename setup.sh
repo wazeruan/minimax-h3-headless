@@ -135,7 +135,7 @@ updates = {
     "UV_CACHE_DIR": data_dir + "/cache/uv",
     "XDG_CACHE_HOME": data_dir + "/cache/xdg",
     "HF_HUB_CACHE": data_dir + "/cache/huggingface",
-    "H3_PROFILE": "auto",
+    "H3_PROFILE": "h100x1",
 }
 lines = path.read_text().splitlines()
 seen = set()

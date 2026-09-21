@@ -15,9 +15,9 @@ partitions, so a four-H100 deployment serves one of them at a time.
 
 ## Important limitation
 
-The official, measured H100 speed recipe uses **4× H100 80 GB** with TP2 +
-Ulysses2. A single H100 can use lossless BF16/FP32 CPU offload, but that is an
-unverified capacity fallback and is not appropriate when speed matters.
+This repository is configured for **one full H100 80 GB** using lossless
+BF16/FP32 CPU/layerwise offload. It is slower than the official four-H100 TP2 +
+Ulysses2 speed recipe, but fits a single-card allocation.
 
 The locally available model is H3-Base at a 768-pixel short edge. The hosted
 H3-Context-IR prompt-preprocessing stage and 2K regeneration are not included
@@ -25,9 +25,8 @@ in the open release.
 
 ## Server requirements
 
-- Linux with four NVIDIA H100 80 GB GPUs visible to `nvidia-smi` for the
-  verified speed profile
-- At least 256 GiB host RAM; more may be needed for the single-H100 fallback
+- Linux with one NVIDIA H100 80 GB GPU visible to `nvidia-smi`
+- At least 256 GiB host RAM for CPU offload
 - At least 180 GiB free disk for one checkpoint partition (more for both)
 - A CUDA driver compatible with the SGLang version locked in this repository
 - CUDA Toolkit compiler (`nvcc`), used once to build SGLang's H3 JIT kernels
@@ -62,7 +61,7 @@ The generated MP4 is written to `outputs/` and the server log to
 
 ## Slurm: submit one complete generation job
 
-On a Slurm login node, the submission helper requests four H100s, starts SGLang
+On a Slurm login node, the submission helper requests one H100, starts SGLang
 inside the allocation, creates the video, and stops SGLang before the job exits:
 
 ```bash
@@ -73,10 +72,10 @@ inside the allocation, creates the video, and stops SGLang before the job exits:
 
 It reads `H3_SLURM_ACCOUNT` from `.env` when present and otherwise uses your
 site's default account. The default GPU request is
-`--gpus-per-node=h100:4`. For clusters that use GRES instead:
+`--gpus-per-node=h100:1`. For clusters that use GRES instead:
 
 ```bash
-H3_SLURM_GPU_OPTION=--gres=gpu:h100:4 \
+H3_SLURM_GPU_OPTION=--gres=gpu:h100:1 \
   ./scripts/submit_slurm_generation.sh --prompt "A moonlit mountain lake."
 ```
 

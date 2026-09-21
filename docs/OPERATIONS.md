@@ -1,12 +1,12 @@
 # Operations and troubleshooting
 
-## Recommended four-H100 process layout
+## Recommended single-H100 process layout
 
 For the SSH-first deployment described in the current README, use `./h3.sh`.
 It starts one SGLang process directly on `127.0.0.1:30010`; there is no
-ComfyUI and no FastAPI gateway in that path. The four-H100 profile uses the
-verified TP2 + Ulysses2 topology, and `./h3.sh generate` talks to SGLang's
-native `/v1/videos` API.
+ComfyUI and no FastAPI gateway in that path. The single-H100 profile uses
+lossless layerwise CPU offload, and `./h3.sh generate` talks to SGLang's native
+`/v1/videos` API.
 
 ```bash
 ./h3.sh status
@@ -38,7 +38,8 @@ should call when using the legacy gateway workflow.
 
 The vLLM-Omni Docker launcher includes its documented B300, two-card DLO, and
 single-GPU offload profiles. Its `auto` mode selects `single_offload` for one
-H100. SGLang remains the recommended four-H100 performance path.
+H100. The four-H100 profiles remain available when a larger allocation is later
+approved.
 
 ## Useful checks
 

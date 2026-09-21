@@ -120,7 +120,7 @@ def test_one_shot_slurm_job_starts_generates_and_stops(tmp_path: Path) -> None:
     assert (state / "host").read_text().strip() == "127.0.0.1"
     port = int((state / "port").read_text())
     assert 1024 <= port <= 65535
-    assert (state / "profile").read_text().strip() == "auto"
+    assert (state / "profile").read_text().strip() == "h100x1"
     assert (state / "url").read_text() == f"http://127.0.0.1:{port}"
     assert (state / "stopped").is_file()
     assert "Slurm generation complete" in result.stdout
@@ -269,7 +269,7 @@ def test_submission_helper_builds_portable_sbatch_command(tmp_path: Path) -> Non
     assert call["repo"] == str(root)
     assert call["args"] == [
         "--export=ALL",
-            "--gpus-per-node=h100:4",
+            "--gpus-per-node=h100:1",
         "--account=project account",
         "--partition=gpu",
         str(batch),

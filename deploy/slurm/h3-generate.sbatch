@@ -159,7 +159,7 @@ trap 'exit 143' TERM
 
 export H3_SGLANG_BIN="${sglang_bin}"
 export H3_MODEL_PATH="${model_path}"
-export H3_PROFILE=${H3_PROFILE:-auto}
+export H3_PROFILE=${H3_PROFILE:-h100x1}
 export H3_INFERENCE_HOST=127.0.0.1
 export H3_INFERENCE_PORT="${port}"
 export H3_SGLANG_URL="http://127.0.0.1:${port}"
