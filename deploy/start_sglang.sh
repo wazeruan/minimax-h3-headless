@@ -49,6 +49,11 @@ case "${profile}" in
       --layerwise-offload-components "dit,text_encoder,vae"
       --dit-offload-prefetch-size 1 --dit-layerwise-resident-layers "${resident_layers}"
     )
+    quantization=${H3_QUANTIZATION:-kitchen_int8}
+    case "${quantization}" in
+      off|none|'') ;;
+      *) topology+=(--quantization "${quantization}") ;;
+    esac
     topology+=(--enable-torch-compile false)
     ;;
   genericx1)

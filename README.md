@@ -16,8 +16,9 @@ partitions, so a four-H100 deployment serves one of them at a time.
 ## Important limitation
 
 This repository is configured for **one full H100 80 GB** using lossless
-BF16/FP32 CPU/layerwise offload. It is slower than the official four-H100 TP2 +
-Ulysses2 speed recipe, but fits a single-card allocation.
+BF16/FP32 CPU/layerwise offload plus online INT8 DiT quantization. Quantization
+reduces memory use but changes linear-layer numerics; set `H3_QUANTIZATION=off`
+when exact BF16/FP32 behavior is more important than capacity.
 
 The locally available model is H3-Base at a 768-pixel short edge. The hosted
 H3-Context-IR prompt-preprocessing stage and 2K regeneration are not included
@@ -191,9 +192,9 @@ payload, polls its status, then downloads the completed MP4 atomically.
 - **`Could not detect ROCm GPU architecture`:** update this repository and
   restart. The launcher explicitly selects CUDA for SGLang's JIT kernels on an
   NVIDIA node; make sure the CUDA module supplies `nvcc`.
-- **GPU OOM:** restart with `H3_H100_MODE=memory`; if needed, add
-  `H3_DIT_RESIDENT_LAYERS=4`. Do not enable arbitrary quantization as a first
-  response.
+- **GPU OOM:** keep `H3_QUANTIZATION=kitchen_int8`, restart with
+  `H3_H100_MODE=memory`, and if needed add `H3_DIT_RESIDENT_LAYERS=4`. The
+  quantized path changes linear-layer numerics, so validate output quality.
 - **Slow first request:** expected. The model is loading and CPU-offloaded
   blocks traverse PCIe during denoising.
 - **Need 2K output or official Context-IR quality:** use MiniMax's hosted API;
