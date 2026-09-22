@@ -17,9 +17,14 @@ case "${variant}" in
   *) echo "Usage: $0 [fl2va|ref2va|both]" >&2; exit 2 ;;
 esac
 
+include_args=()
+for pattern in "${include[@]}"; do
+  include_args+=(--include "${pattern}")
+done
+
 mkdir -p "${model_dir}"
 hf download MiniMaxAI/MiniMax-H3 \
   --revision "${model_revision}" \
-  --include "${include[@]}" \
+  "${include_args[@]}" \
   --local-dir "${model_dir}"
 echo "Model revision ${model_revision} downloaded to ${model_dir}"
